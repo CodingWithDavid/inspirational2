@@ -1,0 +1,58 @@
+﻿@page "/"
+
+@inject HttpClient Http
+@inject Blazor.Analytics.IAnalytics Analytics
+
+@using System.IO
+
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+
+<div class="page_container">
+    <header id="showcase">
+        <h1 class="textHighlight">@quote</h1>
+        <p class="textHighlight">@author</p>
+    </header>
+    <section id="section-a">
+        <p >
+            This site was built to help but a smile on your face, make you stop and to get you to think a little or a lot.  That it’s only purpose.  Both the picture and the quote are randomly generated and put together.  It should make some interesting  combinations.
+            If you like it, share it.
+        </p>
+    </section>
+</div>
+
+
+@code{
+
+    string quote = "Loading....";
+    string author = "";
+    bool allowTracking = false;
+
+    List<Quote> quotes = new List<Quote>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!quotes.Any())
+        {
+            quotes = await Http.GetFromJsonAsync<List<Quote>>("data/quote2.json");
+        }
+        var q = await Quote.Get(quotes!);
+        quote = q.Text;
+        author = q.Author;
+
+        try
+        {
+            var value = await Http.GetFromJsonAsync<Settings>("data/Tracking.txt");
+            if (value != null)
+            {
+                bool.TryParse(value.Tracking, out allowTracking);
+                if(allowTracking)
+                    await Analytics.TrackEvent("Inspirational Page View",  new {app = "Inspirational", value = "WASM"});
+            }
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        };
+    }
+}

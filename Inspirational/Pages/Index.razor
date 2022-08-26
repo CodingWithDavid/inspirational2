@@ -1,0 +1,78 @@
+﻿@page "/"
+
+@inject Blazor.Analytics.IAnalytics Analytics
+
+@using System.IO
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+
+<div class="page_container">
+    <header id="showcase">
+        <h1 class="textHighlight">@quote</h1>
+        <p class="textHighlight">@author</p>
+    </header>
+    <section id="section-a">
+        <p >
+            This site was built to help but a smile on your face, make you stop and to get you to think a little or a lot.  That it’s only purpose.  Both the picture and the quote are randomly generated and put together.  It should make some interesting  combinations.
+            If you like it, share it.
+        </p>
+    </section>
+</div>
+
+
+@code{
+
+    string quote = "Loading....";
+    string author = "";
+    bool allowTracking = false;
+
+    List<Quote> quotes = new List<Quote>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var value = Configuration["AllowTracking"].ToString();
+        if (value == "True" || value == "true")
+            allowTracking = true;
+        await Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //add check to see if tracking is on
+            if(allowTracking)
+                await Analytics.TrackEvent("Inspirational Page View", new {app = "Inspirational", value = "SS"});
+            if (!quotes.Any())
+            {
+                var data = LoadTextFile();
+                if (!string.IsNullOrEmpty(data))
+                {
+                    quotes = System.Text.Json.JsonSerializer.Deserialize<List<Quote>>(data)!;
+                }
+            }
+            var q = await QuoteService.Get(quotes);
+            quote = q.text!;
+            author = q.author!;
+        }
+        StateHasChanged();
+    }
+
+    static private string LoadTextFile()
+    {
+        string result = string.Empty;
+        //make sure the file exists
+        if (File.Exists("wwwroot/data/quote2.json"))
+        {
+            try
+            {
+                result = File.ReadAllText("wwwroot/data/quote2.json");
+            }
+            catch
+            {
+
+            }
+        }
+        return result;
+    }
+}
